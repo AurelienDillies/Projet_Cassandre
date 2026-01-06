@@ -8,13 +8,13 @@
     <link rel="icon" href="{{ asset('favicon.svg') }}">
 
     {% block stylesheets %}
-        <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+        <link rel="stylesheet" href="{{ asset('styles/styleGlobal.css') }}">
     {% endblock %}
 </head>
 <body>
     {% include 'partials/_header.html.twig' %}
 
-    <main>
+    <main class="container">
         {% block body %}{% endblock %}
     </main>
 

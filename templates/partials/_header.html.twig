@@ -1,7 +1,13 @@
 <header class="navbar">
-    <div class="navbar-brand">Cassandre System</div>
+    <div class="container">
+        <div class="navbar-brand">
+            <span class="brand-icon">C</span>
+            <span>Cassandre System</span>
+        </div>
 
-    <nav class="navbar-menu">
-        <a href="{{ path('app_accueil') }}" class="navbar-link">Accueil</a>
-    </nav>
+        <nav class="navbar-menu">
+            <a href="{{ path('app_accueil') }}" class="navbar-link">Accueil</a>
+            <a href="{{ path('app_client_index') }}" class="navbar-link">Clients</a>
+        </nav>
+    </div>
 </header>
