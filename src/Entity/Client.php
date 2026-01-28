@@ -33,6 +33,9 @@ class Client
     #[ORM\OneToMany(targetEntity: Audit::class, mappedBy: 'client')]
     private Collection $audit;
 
+    #[ORM\ManyToOne(inversedBy: 'client')]
+    private ?Invoice $invoice = null;
+
     public function __construct()
     {
         $this->certification = new ArrayCollection();
@@ -118,6 +121,18 @@ class Client
                 $audit->setClient(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getInvoice(): ?Invoice
+    {
+        return $this->invoice;
+    }
+
+    public function setInvoice(?Invoice $invoice): static
+    {
+        $this->invoice = $invoice;
 
         return $this;
     }

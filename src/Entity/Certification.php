@@ -34,6 +34,9 @@ class Certification
     #[ORM\ManyToMany(targetEntity: Client::class, mappedBy: 'certification')]
     private Collection $clients;
 
+    #[ORM\ManyToOne(inversedBy: 'certification')]
+    private ?Invoice $invoice = null;
+
     public function __construct()
     {
         $this->clients = new ArrayCollection();
@@ -115,6 +118,18 @@ class Certification
         if ($this->clients->removeElement($client)) {
             $client->removeCertification($this);
         }
+
+        return $this;
+    }
+
+    public function getInvoice(): ?Invoice
+    {
+        return $this->invoice;
+    }
+
+    public function setInvoice(?Invoice $invoice): static
+    {
+        $this->invoice = $invoice;
 
         return $this;
     }

@@ -41,6 +41,9 @@ class Audit
     #[ORM\JoinColumn(nullable: false)]
     private ?Client $client = null;
 
+    #[ORM\ManyToOne(inversedBy: 'audit')]
+    private ?Invoice $invoice = null;
+
     public function __construct()
     {
         $this->users = new ArrayCollection();
@@ -147,6 +150,18 @@ class Audit
     public function setClient(?Client $client): static
     {
         $this->client = $client;
+
+        return $this;
+    }
+
+    public function getInvoice(): ?Invoice
+    {
+        return $this->invoice;
+    }
+
+    public function setInvoice(?Invoice $invoice): static
+    {
+        $this->invoice = $invoice;
 
         return $this;
     }
