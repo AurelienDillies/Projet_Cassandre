@@ -9,6 +9,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: InvoiceRepository::class)]
 class Invoice
@@ -19,12 +20,17 @@ class Invoice
     private ?int $id = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank(message: 'La référence ne peut pas être vide.')]
+    #[Assert\Length(max: 50)]
     private ?string $reference = null;
 
     #[ORM\Column]
+    #[Assert\NotNull(message: 'La date ne peut pas être vide.')]
     private ?\DateTime $date = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2)]
+    #[Assert\NotBlank(message: 'Le prix ne peut pas être vide.')]
+    #[Assert\Positive(message: 'Le prix doit être positif.')]
     private ?string $price = null;
 
     #[ORM\Column(enumType: Invoice_status::class)]
@@ -45,17 +51,13 @@ class Invoice
     #[ORM\OneToMany(targetEntity: Certification::class, mappedBy: 'invoice')]
     private Collection $certification;
 
-    /**
-     * @var Collection<int, Client>
-     */
-    #[ORM\OneToMany(targetEntity: Client::class, mappedBy: 'invoice')]
-    private Collection $client;
+    #[ORM\ManyToOne(inversedBy: 'invoices')]
+    private ?Client $client = null;
 
     public function __construct()
     {
         $this->audit = new ArrayCollection();
         $this->certification = new ArrayCollection();
-        $this->client = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -183,32 +185,14 @@ class Invoice
         return $this;
     }
 
-    /**
-     * @return Collection<int, Client>
-     */
-    public function getClient(): Collection
+    public function getClient(): ?Client
     {
         return $this->client;
     }
 
-    public function addClient(Client $client): static
+    public function setClient(?Client $client): static
     {
-        if (!$this->client->contains($client)) {
-            $this->client->add($client);
-            $client->setInvoice($this);
-        }
-
-        return $this;
-    }
-
-    public function removeClient(Client $client): static
-    {
-        if ($this->client->removeElement($client)) {
-            // set the owning side to null (unless already changed)
-            if ($client->getInvoice() === $this) {
-                $client->setInvoice(null);
-            }
-        }
+        $this->client = $client;
 
         return $this;
     }

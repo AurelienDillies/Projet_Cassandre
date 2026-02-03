@@ -6,9 +6,14 @@ use App\Repository\UserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-class User
+#[UniqueEntity(fields: ['email'], message: 'Cet email est déjà utilisé.')]
+class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -16,15 +21,21 @@ class User
     private ?int $id = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank(message: 'Le nom ne peut pas être vide.')]
+    #[Assert\Length(min: 2, max: 50)]
     private ?string $name = null;
 
     #[ORM\Column(length: 150)]
+    #[Assert\NotBlank(message: 'L\'email ne peut pas être vide.')]
+    #[Assert\Email(message: 'L\'email "{{ value }}" n\'est pas valide.')]
     private ?string $email = null;
 
     #[ORM\Column(length: 100)]
     private ?string $password = null;
 
     #[ORM\Column(length: 20)]
+    #[Assert\NotBlank(message: 'Le téléphone ne peut pas être vide.')]
+    #[Assert\Regex(pattern: '/^[0-9+\-\s()]+$/', message: 'Le numéro de téléphone n\'est pas valide.')]
     private ?string $telephone = null;
 
     #[ORM\ManyToOne(inversedBy: 'user')]
@@ -129,5 +140,38 @@ class User
         $this->audit->removeElement($audit);
 
         return $this;
+    }
+
+    /**
+     * @see UserInterface
+     */
+    public function getUserIdentifier(): string
+    {
+        return (string) $this->email;
+    }
+
+    /**
+     * @see UserInterface
+     */
+    public function getRoles(): array
+    {
+        // Garantir que chaque utilisateur a au moins ROLE_USER
+        $roles = ['ROLE_USER'];
+        
+        // Ajouter le rôle depuis l'entité Role si défini
+        if ($this->role) {
+            $roles[] = 'ROLE_' . strtoupper($this->role->getName());
+        }
+        
+        return array_unique($roles);
+    }
+
+    /**
+     * @see UserInterface
+     */
+    public function eraseCredentials(): void
+    {
+        // Si vous stockez des données sensibles temporaires sur l'utilisateur, effacez-les ici
+        // $this->plainPassword = null;
     }
 }

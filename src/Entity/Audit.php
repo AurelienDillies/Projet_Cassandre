@@ -2,11 +2,13 @@
 
 namespace App\Entity;
 
+use App\Enum\Audit_status;
 use App\Repository\AuditRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: AuditRepository::class)]
 class Audit
@@ -17,19 +19,28 @@ class Audit
     private ?int $id = null;
 
     #[ORM\Column]
+    #[Assert\NotNull(message: 'La date de début est requise.')]
     private ?\DateTime $start_date = null;
 
     #[ORM\Column(nullable: true)]
+    #[Assert\GreaterThan(propertyPath: 'start_date', message: 'La date de fin doit être postérieure à la date de début.')]
     private ?\DateTime $end_date = null;
 
     #[ORM\Column(length: 30)]
+    #[Assert\NotBlank(message: 'La référence ne peut pas être vide.')]
+    #[Assert\Length(max: 30)]
     private ?string $reference = null;
 
     #[ORM\Column(length: 100)]
+    #[Assert\NotBlank(message: 'Le périmètre déclaré ne peut pas être vide.')]
+    #[Assert\Length(max: 100)]
     private ?string $declared_perimetre = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $synthesis = null;
+
+    #[ORM\Column(enumType: Audit_status::class)]
+    private ?Audit_status $status = null;
 
     /**
      * @var Collection<int, User>
@@ -111,6 +122,18 @@ class Audit
     public function setSynthesis(?string $synthesis): static
     {
         $this->synthesis = $synthesis;
+
+        return $this;
+    }
+
+    public function getStatus(): ?Audit_status
+    {
+        return $this->status;
+    }
+
+    public function setStatus(Audit_status $status): static
+    {
+        $this->status = $status;
 
         return $this;
     }
