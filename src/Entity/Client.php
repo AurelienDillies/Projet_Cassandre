@@ -2,15 +2,14 @@
 
 namespace App\Entity;
 
+use App\Enum\Client_status;
 use App\Repository\ClientRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
-use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\Entity(repositoryClass: ClientRepository::class)]
-#[UniqueEntity(fields: ['email'], message: 'Cet email est déjà utilisé.')]
 class Client
 {
     #[ORM\Id]
@@ -23,16 +22,9 @@ class Client
     #[Assert\Length(min: 2, max: 100, minMessage: 'Le nom doit contenir au moins {{ limit }} caractères.', maxMessage: 'Le nom ne peut pas dépasser {{ limit }} caractères.')]
     private ?string $name = null;
 
-    #[ORM\Column(length: 100)]
-    #[Assert\NotBlank(message: 'L\'email ne peut pas être vide.')]
-    #[Assert\Email(message: 'L\'email "{{ value }}" n\'est pas valide.')]
-    private ?string $email = null;
+    // email field removed
 
-    /**
-     * @var Collection<int, Certification>
-     */
-    #[ORM\ManyToMany(targetEntity: Certification::class, inversedBy: 'clients')]
-    private Collection $certification;
+    // Certification relation removed
 
     /**
      * @var Collection<int, Audit>
@@ -46,9 +38,26 @@ class Client
     #[ORM\OneToMany(targetEntity: Invoice::class, mappedBy: 'client')]
     private Collection $invoices;
 
+    #[ORM\Column(length: 50)]
+    private ?string $siret = null;
+
+    #[ORM\Column(length: 150)]
+    private ?string $adress = null;
+
+    #[ORM\Column(length: 100)]
+    private ?string $city = null;
+
+    #[ORM\Column(length: 20)]
+    private ?string $postal_code = null;
+
+    #[ORM\Column(enumType: Client_status::class)]
+    private ?Client_status $status = null;
+
+    // user relation removed
+
     public function __construct()
     {
-        $this->certification = new ArrayCollection();
+        
         $this->audit = new ArrayCollection();
         $this->invoices = new ArrayCollection();
     }
@@ -70,41 +79,9 @@ class Client
         return $this;
     }
 
-    public function getEmail(): ?string
-    {
-        return $this->email;
-    }
+    // email accessors removed
 
-    public function setEmail(string $email): static
-    {
-        $this->email = $email;
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Certification>
-     */
-    public function getCertification(): Collection
-    {
-        return $this->certification;
-    }
-
-    public function addCertification(Certification $certification): static
-    {
-        if (!$this->certification->contains($certification)) {
-            $this->certification->add($certification);
-        }
-
-        return $this;
-    }
-
-    public function removeCertification(Certification $certification): static
-    {
-        $this->certification->removeElement($certification);
-
-        return $this;
-    }
+    // Certification relation removed
 
     /**
      * @return Collection<int, Audit>
@@ -162,6 +139,68 @@ class Client
                 $invoice->setClient(null);
             }
         }
+
+        return $this;
+    }
+
+    // user accessors removed
+
+    public function getSiret(): ?string
+    {
+        return $this->siret;
+    }
+
+    public function setSiret(string $siret): static
+    {
+        $this->siret = $siret;
+
+        return $this;
+    }
+
+    public function getAdress(): ?string
+    {
+        return $this->adress;
+    }
+
+    public function setAdress(string $adress): static
+    {
+        $this->adress = $adress;
+
+        return $this;
+    }
+
+    public function getCity(): ?string
+    {
+        return $this->city;
+    }
+
+    public function setCity(string $city): static
+    {
+        $this->city = $city;
+
+        return $this;
+    }
+
+    public function getPostalCode(): ?string
+    {
+        return $this->postal_code;
+    }
+
+    public function setPostalCode(string $postal_code): static
+    {
+        $this->postal_code = $postal_code;
+
+        return $this;
+    }
+
+    public function getStatus(): ?Client_status
+    {
+        return $this->status;
+    }
+
+    public function setStatus(Client_status $status): static
+    {
+        $this->status = $status;
 
         return $this;
     }

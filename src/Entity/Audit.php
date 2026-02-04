@@ -42,12 +42,6 @@ class Audit
     #[ORM\Column(enumType: Audit_status::class)]
     private ?Audit_status $status = null;
 
-    /**
-     * @var Collection<int, User>
-     */
-    #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'audit')]
-    private Collection $users;
-
     #[ORM\ManyToOne(inversedBy: 'audit')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Client $client = null;
@@ -55,8 +49,15 @@ class Audit
     #[ORM\ManyToOne(inversedBy: 'audit')]
     private ?Invoice $invoice = null;
 
+    /**
+     * @var Collection<int, User>
+     */
+    #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'audit')]
+    private Collection $users;
+
     public function __construct()
     {
+        // constructor
         $this->users = new ArrayCollection();
     }
 
@@ -138,6 +139,32 @@ class Audit
         return $this;
     }
 
+    
+
+    public function getClient(): ?Client
+    {
+        return $this->client;
+    }
+
+    public function setClient(?Client $client): static
+    {
+        $this->client = $client;
+
+        return $this;
+    }
+
+    public function getInvoice(): ?Invoice
+    {
+        return $this->invoice;
+    }
+
+    public function setInvoice(?Invoice $invoice): static
+    {
+        $this->invoice = $invoice;
+
+        return $this;
+    }
+
     /**
      * @return Collection<int, User>
      */
@@ -161,30 +188,6 @@ class Audit
         if ($this->users->removeElement($user)) {
             $user->removeAudit($this);
         }
-
-        return $this;
-    }
-
-    public function getClient(): ?Client
-    {
-        return $this->client;
-    }
-
-    public function setClient(?Client $client): static
-    {
-        $this->client = $client;
-
-        return $this;
-    }
-
-    public function getInvoice(): ?Invoice
-    {
-        return $this->invoice;
-    }
-
-    public function setInvoice(?Invoice $invoice): static
-    {
-        $this->invoice = $invoice;
 
         return $this;
     }

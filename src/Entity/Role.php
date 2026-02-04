@@ -25,11 +25,12 @@ class Role
      * @var Collection<int, User>
      */
     #[ORM\OneToMany(targetEntity: User::class, mappedBy: 'role')]
-    private Collection $user;
+    private Collection $users;
 
     public function __construct()
     {
-        $this->user = new ArrayCollection();
+        // constructor
+        $this->users = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -64,15 +65,15 @@ class Role
     /**
      * @return Collection<int, User>
      */
-    public function getUser(): Collection
+    public function getUsers(): Collection
     {
-        return $this->user;
+        return $this->users;
     }
 
     public function addUser(User $user): static
     {
-        if (!$this->user->contains($user)) {
-            $this->user->add($user);
+        if (!$this->users->contains($user)) {
+            $this->users->add($user);
             $user->setRole($this);
         }
 
@@ -81,7 +82,7 @@ class Role
 
     public function removeUser(User $user): static
     {
-        if ($this->user->removeElement($user)) {
+        if ($this->users->removeElement($user)) {
             // set the owning side to null (unless already changed)
             if ($user->getRole() === $this) {
                 $user->setRole(null);
@@ -90,4 +91,6 @@ class Role
 
         return $this;
     }
+
+    
 }

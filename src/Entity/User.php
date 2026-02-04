@@ -8,11 +8,9 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Validator\Constraints as Assert;
-use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-#[UniqueEntity(fields: ['email'], message: 'Cet email est déjà utilisé.')]
+#[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
@@ -20,25 +18,22 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 50)]
-    #[Assert\NotBlank(message: 'Le nom ne peut pas être vide.')]
-    #[Assert\Length(min: 2, max: 50)]
-    private ?string $name = null;
-
-    #[ORM\Column(length: 150)]
-    #[Assert\NotBlank(message: 'L\'email ne peut pas être vide.')]
-    #[Assert\Email(message: 'L\'email "{{ value }}" n\'est pas valide.')]
+    #[ORM\Column(length: 180)]
     private ?string $email = null;
 
-    #[ORM\Column(length: 100)]
+    /**
+     * @var list<string> The user roles
+     */
+    #[ORM\Column]
+    private array $roles = [];
+
+    /**
+     * @var string The hashed password
+     */
+    #[ORM\Column]
     private ?string $password = null;
 
-    #[ORM\Column(length: 20)]
-    #[Assert\NotBlank(message: 'Le téléphone ne peut pas être vide.')]
-    #[Assert\Regex(pattern: '/^[0-9+\-\s()]+$/', message: 'Le numéro de téléphone n\'est pas valide.')]
-    private ?string $telephone = null;
-
-    #[ORM\ManyToOne(inversedBy: 'user')]
+    #[ORM\ManyToOne(inversedBy: 'users')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Role $role = null;
 
@@ -48,26 +43,39 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\ManyToMany(targetEntity: Audit::class, inversedBy: 'users')]
     private Collection $audit;
 
+    #[ORM\OneToOne(inversedBy: 'user', cascade: ['persist', 'remove'])]
+    private ?Client $client = null;
+
+    /**
+     * @var Collection<int, Certification>
+     */
+    #[ORM\ManyToMany(targetEntity: Certification::class, inversedBy: 'users')]
+    private Collection $certification;
+
+    #[ORM\Column(length: 50)]
+    private ?string $first_name = null;
+
+    #[ORM\Column(length: 50)]
+    private ?string $last_name = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $phone = null;
+
+    #[ORM\Column]
+    private ?\DateTimeImmutable $create_at = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTime $last_login = null;
+
     public function __construct()
     {
         $this->audit = new ArrayCollection();
+        $this->certification = new ArrayCollection();
     }
 
     public function getId(): ?int
     {
         return $this->id;
-    }
-
-    public function getName(): ?string
-    {
-        return $this->name;
-    }
-
-    public function setName(string $name): static
-    {
-        $this->name = $name;
-
-        return $this;
     }
 
     public function getEmail(): ?string
@@ -82,6 +90,41 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    /**
+     * A visual identifier that represents this user.
+     *
+     * @see UserInterface
+     */
+    public function getUserIdentifier(): string
+    {
+        return (string) $this->email;
+    }
+
+    /**
+     * @see UserInterface
+     */
+    public function getRoles(): array
+    {
+        $roles = $this->roles;
+        // guarantee every user at least has ROLE_USER
+        $roles[] = 'ROLE_USER';
+
+        return array_unique($roles);
+    }
+
+    /**
+     * @param list<string> $roles
+     */
+    public function setRoles(array $roles): static
+    {
+        $this->roles = $roles;
+
+        return $this;
+    }
+
+    /**
+     * @see PasswordAuthenticatedUserInterface
+     */
     public function getPassword(): ?string
     {
         return $this->password;
@@ -94,17 +137,23 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getTelephone(): ?string
+    /**
+     * Ensure the session doesn't contain actual password hashes by CRC32C-hashing them, as supported since Symfony 7.3.
+     */
+    public function __serialize(): array
     {
-        return $this->telephone;
+        $data = (array) $this;
+        $data["\0".self::class."\0password"] = hash('crc32c', $this->password);
+
+        return $data;
     }
 
-    public function setTelephone(string $telephone): static
+    #[\Deprecated]
+    public function eraseCredentials(): void
     {
-        $this->telephone = $telephone;
-
-        return $this;
+        // @deprecated, to be removed when upgrading to Symfony 8
     }
+
     public function getRole(): ?Role
     {
         return $this->role;
@@ -141,36 +190,99 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * @see UserInterface
-     */
-    public function getUserIdentifier(): string
+    public function getClient(): ?Client
     {
-        return (string) $this->email;
+        return $this->client;
+    }
+
+    public function setClient(?Client $client): static
+    {
+        $this->client = $client;
+
+        return $this;
     }
 
     /**
-     * @see UserInterface
+     * @return Collection<int, Certification>
      */
-    public function getRoles(): array
+    public function getCertification(): Collection
     {
-        // Garantir que chaque utilisateur a au moins ROLE_USER
-        $roles = ['ROLE_USER'];
-        
-        // Ajouter le rôle depuis l'entité Role si défini
-        if ($this->role) {
-            $roles[] = 'ROLE_' . strtoupper($this->role->getName());
+        return $this->certification;
+    }
+
+    public function addCertification(Certification $certification): static
+    {
+        if (!$this->certification->contains($certification)) {
+            $this->certification->add($certification);
         }
-        
-        return array_unique($roles);
+
+        return $this;
     }
 
-    /**
-     * @see UserInterface
-     */
-    public function eraseCredentials(): void
+    public function removeCertification(Certification $certification): static
     {
-        // Si vous stockez des données sensibles temporaires sur l'utilisateur, effacez-les ici
-        // $this->plainPassword = null;
+        $this->certification->removeElement($certification);
+
+        return $this;
+    }
+
+    public function getFirstName(): ?string
+    {
+        return $this->first_name;
+    }
+
+    public function setFirstName(string $first_name): static
+    {
+        $this->first_name = $first_name;
+
+        return $this;
+    }
+
+    public function getLastName(): ?string
+    {
+        return $this->last_name;
+    }
+
+    public function setLastName(string $last_name): static
+    {
+        $this->last_name = $last_name;
+
+        return $this;
+    }
+
+    public function getPhone(): ?string
+    {
+        return $this->phone;
+    }
+
+    public function setPhone(?string $phone): static
+    {
+        $this->phone = $phone;
+
+        return $this;
+    }
+
+    public function getCreateAt(): ?\DateTimeImmutable
+    {
+        return $this->create_at;
+    }
+
+    public function setCreateAt(\DateTimeImmutable $create_at): static
+    {
+        $this->create_at = $create_at;
+
+        return $this;
+    }
+
+    public function getLastLogin(): ?\DateTime
+    {
+        return $this->last_login;
+    }
+
+    public function setLastLogin(\DateTime $last_login): static
+    {
+        $this->last_login = $last_login;
+
+        return $this;
     }
 }
